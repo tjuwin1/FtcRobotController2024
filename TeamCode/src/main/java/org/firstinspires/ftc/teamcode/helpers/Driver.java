@@ -30,11 +30,20 @@ public class Driver {
 
     private ArrayList<CurvePoint> prevDeltas = new ArrayList<CurvePoint>();
 
+    public Driver(DataLogger logger, Hardware robot){
+        this.logger = logger;
+        this.robot = robot;
+    }
+
     public Driver(LinearOpMode opMode,Telemetry telemetry, DataLogger logger, Hardware robot){
         this.telemetry = telemetry;
         this.logger = logger;
         this.opMode = opMode;
         this.robot = robot;
+    }
+
+    private boolean mustContinue(){
+        return this.opMode.opModeIsActive();
     }
 
     public void stopReleaseAll(){
@@ -49,7 +58,7 @@ public class Driver {
     }
 
     public void moveTo(CurvePoint point){
-        if(!this.opMode.opModeIsActive()) {
+        if(!this.mustContinue()) {
             return;
         }
 
@@ -69,7 +78,7 @@ public class Driver {
                 "dxPos", "dyPos", "dangle", "xPIDPower", "yPIDPower",
                 "aPIDPower", "lfPower", "lbPower", "rfPower", "rbPower", "\n"});
 
-        while (this.opMode.opModeIsActive()) {
+        while (this.mustContinue()) {
             robot.localizer.updateReadings();
 
             double cycleTime = runtime.seconds();

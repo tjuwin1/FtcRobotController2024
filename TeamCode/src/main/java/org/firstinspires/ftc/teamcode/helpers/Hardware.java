@@ -1,13 +1,13 @@
 package org.firstinspires.ftc.teamcode.helpers;
 
-import android.text.BoringLayout;
-
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+import java.util.List;
 
 public class Hardware {
     public DcMotor leftFrontDrive = null;
@@ -36,12 +36,14 @@ public class Hardware {
     public Hardware(HardwareMap hardwareMap, Telemetry telemetry){
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
+
         leftPod = leftFrontDrive  = initializeMotor("frontLeft",DcMotor.Direction.REVERSE);
         backPod = leftBackDrive  = initializeMotor("backLeft",DcMotor.Direction.REVERSE);
         rightPod = rightFrontDrive = initializeMotor("frontRight",DcMotor.Direction.FORWARD);
         rightBackDrive = initializeMotor( "backRight",DcMotor.Direction.FORWARD);
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        localizer = new Odometry(this,telemetry);
 
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
         BNO055IMU.Parameters IMUParameters;
         IMUParameters = new BNO055IMU.Parameters();
         IMUParameters.mode = BNO055IMU.SensorMode.IMU;
@@ -49,6 +51,10 @@ public class Hardware {
         IMUParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         imu.initialize(IMUParameters);
 
-        localizer = new Odometry(hardwareMap,telemetry);
+        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
     }
 }

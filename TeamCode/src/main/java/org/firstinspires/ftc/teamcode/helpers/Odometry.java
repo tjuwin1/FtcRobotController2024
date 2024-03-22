@@ -28,21 +28,15 @@ public class Odometry{
     public CurvePoint robotPose = new CurvePoint(0,0,0);
     private Telemetry telemetry;
 
-    public Odometry(HardwareMap hardwareMap,Telemetry telemetry){
+    public Odometry(Hardware hardwareMap,Telemetry telemetry){
         this.telemetry = telemetry;
-        leftFrontDrive  = hardwareMap.get(DcMotor.class, "frontLeft");
-        leftBackDrive  = hardwareMap.get(DcMotor.class, "backLeft");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "frontRight");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "backRight");
+        leftFrontDrive  = hardwareMap.leftFrontDrive;
+        leftBackDrive  = hardwareMap.leftBackDrive;
+        rightFrontDrive = hardwareMap.rightFrontDrive;
+        rightBackDrive = hardwareMap.rightBackDrive;
         this.prevRightOdo = this.rightOdoOff = - rightFrontDrive.getCurrentPosition();
         this.prefBackOdo = this.backOdoOff = - leftBackDrive.getCurrentPosition();
         this.prevLeftOdo = this.leftOdoOff = - leftFrontDrive.getCurrentPosition();
-
-        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
-
-        for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
-        }
     }
 
     public void setRobotPos(CurvePoint Pose){
