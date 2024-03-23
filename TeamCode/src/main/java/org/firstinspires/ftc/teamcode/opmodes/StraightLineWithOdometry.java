@@ -38,6 +38,8 @@ import org.firstinspires.ftc.teamcode.helpers.DataLogger;
 import org.firstinspires.ftc.teamcode.helpers.Driver;
 import org.firstinspires.ftc.teamcode.helpers.Hardware;
 
+import java.util.ArrayList;
+
 @TeleOp(name="Straight Line With Odometry", group="Linear OpMode")
 public class StraightLineWithOdometry extends LinearOpMode {
 
@@ -70,12 +72,10 @@ public class StraightLineWithOdometry extends LinearOpMode {
         }
 
         if(opModeIsActive()){
-            this.driver.moveTo(new CurvePoint(15,0,Math.toRadians(90)));
-            this.driver.moveTo(new CurvePoint(15,15,Math.toRadians(180)));
-            this.driver.moveTo(new CurvePoint(0,15,Math.toRadians(-90)));
-            this.driver.moveTo(new CurvePoint(0,0,Math.toRadians(0)));
-            this.driver.moveTo(new CurvePoint(15,15,Math.toRadians(45)));
-            this.driver.moveTo(new CurvePoint(0,0,Math.toRadians(0)));
+            ArrayList<CurvePoint> newPath = new ArrayList<CurvePoint>();
+            newPath.add(new CurvePoint(20,0,Math.toRadians(90)));
+            newPath.add(new CurvePoint(30,40,Math.toRadians(180)));
+            this.driver.followPath(newPath);
         }
 
         this.driver.stopReleaseAll();

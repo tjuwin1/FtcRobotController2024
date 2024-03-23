@@ -14,6 +14,8 @@ import java.util.Optional;
 public class Driver {
     private Hardware robot;
 
+    public static final double TURN_AT_DISTANCE = 10;
+
     //Values for Proportional in PID tuning
     private static final double kPxy=0.12, kP0=1;
     private static final double kDxy=0.012,kD0=0.045;
@@ -57,7 +59,7 @@ public class Driver {
         robot.rightBackDrive.setPower(0);
     }
 
-    public void moveTo(CurvePoint point){
+    public void followPath(ArrayList<CurvePoint> allPoints){
         if(!this.mustContinue()) {
             return;
         }
@@ -70,9 +72,8 @@ public class Driver {
         prevDeltas.clear();
         runtime.reset();
 
-        logger.addField(String.format("------------Driving to:,(%.5f;%.5f;%.5f)------------------\n", point.xPos, point.yPos, Math.toDegrees(point.angle)));
-        logger.addField(new String[]{"cycleTime",
-                "xPos", "yPos", "angle",
+        logger.addField(new String[]{
+                "cycleTime","xPos", "yPos", "angle","tgtX","tgtY","tgta",
                 "distanceToTarget", "absoluteAngleToTarget",
                 "relativeAngleToPoint", "relativeTurnAngle", "xyTotal", "xPower", "yPower",
                 "dxPos", "dyPos", "dangle", "xPIDPower", "yPIDPower",
@@ -83,6 +84,8 @@ public class Driver {
 
             double cycleTime = runtime.seconds();
             runtime.reset();
+
+            CurvePoint point = PathFinder.getFollowPoint(allPoints,robot.localizer.robotPose);
 
             //Find the maximum allowed power change in a second to limit acceleration
             double powerVariation = Range.clip(cycleTime * 10,0.1,0.3);
@@ -97,6 +100,9 @@ public class Driver {
             double xPower = Math.cos(relativeAngleToPoint) * distanceToTarget;
             double yPower = Math.sin(relativeAngleToPoint) * distanceToTarget;
             double relativeTurnAngle = Range.clip(MathFunctions.AngleWrap(point.angle - robot.localizer.robotPose.angle), -Math.PI / 2, Math.PI / 2);
+            if (distanceToTarget > TURN_AT_DISTANCE){ //If distance to target is more than 15 inches, then turn towards the target to make it easier to drive
+                relativeTurnAngle = Range.clip(absoluteAngleToTarget, -Math.PI / 2, Math.PI / 2);
+            }
 
             if (firstRun == false) {
                 deltaError = CurvePoint.subtract(prevPoint, new CurvePoint(xPower, yPower, relativeTurnAngle));
@@ -133,6 +139,7 @@ public class Driver {
 
             logger.addField(new double[]{cycleTime,
                     robot.localizer.robotPose.xPos, robot.localizer.robotPose.yPos, Math.toDegrees(robot.localizer.robotPose.angle),
+                    point.xPos,point.yPos,point.angle,
                     distanceToTarget, Math.toDegrees(absoluteAngleToTarget),
                     Math.toDegrees(relativeAngleToPoint), Math.toDegrees(relativeTurnAngle), xyTotal, xPower, yPower,
                     deltaError.xPos, deltaError.yPos, Math.toDegrees(deltaError.angle),

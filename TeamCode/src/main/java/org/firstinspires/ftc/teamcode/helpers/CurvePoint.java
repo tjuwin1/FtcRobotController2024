@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.helpers;
 
-import org.checkerframework.checker.units.qual.C;
+import org.opencv.core.Point;
 
 public class CurvePoint {
     public double xPos;
@@ -33,5 +33,9 @@ public class CurvePoint {
         return new CurvePoint(point.xPos * multiplier,
                 point.yPos * multiplier,
                 MathFunctions.AngleWrap(point.angle * multiplier));
+    }
+
+    protected Point toPoint(){
+        return new Point(this.xPos,this.yPos);
     }
 }
