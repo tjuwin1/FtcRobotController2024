@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.helpers;
 
+import org.checkerframework.dataflow.qual.Pure;
 import org.opencv.core.Point;
 
 import java.util.ArrayList;
@@ -31,8 +32,8 @@ public class PathFinder {
             double distance = Math.abs(slope * robotLocation.xPos - robotLocation.yPos + intercept) / Math.hypot(slope, 1);
             if (closestDist > distance) { //Keep a minimum radius of n-inches for smooth turning
                 closestDist = distance;
-                if(closestDist < Driver.TURN_AT_DISTANCE){
-                    closestDist = Driver.TURN_AT_DISTANCE;
+                if(closestDist < PurePursuitDriver.TURN_AT_DISTANCE){
+                    closestDist = PurePursuitDriver.TURN_AT_DISTANCE;
                 }
             }
         }

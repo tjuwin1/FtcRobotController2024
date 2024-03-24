@@ -43,18 +43,22 @@ public class Hardware {
         rightBackDrive = initializeMotor( "backRight",DcMotor.Direction.FORWARD);
         localizer = new Odometry(this,telemetry);
 
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        BNO055IMU.Parameters IMUParameters;
-        IMUParameters = new BNO055IMU.Parameters();
-        IMUParameters.mode = BNO055IMU.SensorMode.IMU;
-        IMUParameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        IMUParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        imu.initialize(IMUParameters);
+        this.reInitIMU();
 
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
 
         for (LynxModule hub : allHubs) {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
+    }
+
+    public void reInitIMU(){
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters IMUParameters;
+        IMUParameters = new BNO055IMU.Parameters();
+        IMUParameters.mode = BNO055IMU.SensorMode.IMU;
+        IMUParameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        IMUParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imu.initialize(IMUParameters);
     }
 }
