@@ -1,8 +1,10 @@
 package org.firstinspires.ftc.teamcode.helpers;
 
 import android.graphics.Canvas;
-import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.internal.camera.calibration.CameraCalibration;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -10,14 +12,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvCamera;
-import org.openftc.easyopencv.OpenCvCameraFactory;
-import org.openftc.easyopencv.OpenCvCameraRotation;
-import org.openftc.easyopencv.OpenCvPipeline;
 import org.firstinspires.ftc.vision.VisionProcessor;
 
 import java.util.List;
@@ -26,10 +22,25 @@ public class Visiativity {
     AprilTagProcessor aprilTagProcessor = new AprilTagProcessor.Builder().build();
     PropFinder propFinder = new PropFinder();
     VisionPortal visionPortal;
+    WebcamName[] cameraNames;
 
     public Visiativity(WebcamName... cvCameras){
-        //visionPortal = VisionPortal.easyCreateWithDefaults(hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTagProcessor, propFinder);
-        visionPortal = VisionPortal.easyCreateWithDefaults(cvCameras[0], aprilTagProcessor, propFinder);
+        this.cameraNames = cvCameras;
+        if(cvCameras.length > 1){
+            CameraName switchableCamera = ClassFactory.getInstance()
+                    .getCameraManager().nameForSwitchableCamera(cvCameras[0], cvCameras[1]);
+            visionPortal = VisionPortal.easyCreateWithDefaults(switchableCamera, aprilTagProcessor, propFinder);
+        }else{
+            visionPortal = VisionPortal.easyCreateWithDefaults(cvCameras[0], aprilTagProcessor, propFinder);
+        }
+    }
+
+    public void switchCamera() {
+        if (visionPortal.getActiveCamera().equals(this.cameraNames[0])) {
+            visionPortal.setActiveCamera(this.cameraNames[1]);
+        } else {
+            visionPortal.setActiveCamera(this.cameraNames[0]);
+        }
     }
 
     public List<AprilTagDetection> getAprilTagDetections(){
