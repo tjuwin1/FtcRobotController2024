@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,16 +21,13 @@ public class Odometry{
     private static final double backOffset = 5.444241253624781;
     private static final double inPerTick = 4.8 * Math.PI / 2000 / 2.54;
 
-    private static final Paint dumPaint = new Paint();
-    private static final float spaceWidth       = 3;
-
     private int leftOdoOff=0, rightOdoOff=0, backOdoOff=0;
     private int prevRightOdo, prevLeftOdo, prefBackOdo;
 
     public CurvePoint robotPose = new CurvePoint(0,0,0);
-    private Telemetry telemetry;
+    private LogOutput telemetry;
 
-    public Odometry(Hardware hardwareMap,Telemetry telemetry){
+    public Odometry(Hardware hardwareMap,LogOutput telemetry){
         this.telemetry = telemetry;
         leftFrontDrive  = hardwareMap.leftFrontDrive;
         leftBackDrive  = hardwareMap.leftBackDrive;
@@ -83,38 +82,7 @@ public class Odometry{
     }
 
     private void printPosition(int rightOdo,int backOdo,int leftOdo){
-        String outText = "";
-        outText = this.adjustLength("Odo Pos (R,B,L):",125,true);
-        outText += this.adjustLength(String.valueOf(rightOdo),50) + ",";
-        outText += this.adjustLength(String.valueOf(backOdo),50) + ",";
-        outText += this.adjustLength(String.valueOf(leftOdo),50);
-        telemetry.addLine(outText);
-
-        outText = this.adjustLength("Robot Pos (X,Y,θ):",125,true);
-        outText += this.adjustLength(String.format( "%.3f",this.robotPose.xPos),50) + ",";
-        outText += this.adjustLength(String.format( "%.3f",this.robotPose.yPos),50) + ",";
-        outText += this.adjustLength(String.format( "%.3f",Math.toDegrees(this.robotPose.angle)),50);
-        telemetry.addLine(outText);
-    }
-
-    private static String adjustLength(String input, float length, boolean leftJustified){
-        String textToPrint     = input;
-        String spaceString     = buildSpaces((int)((length - dumPaint.measureText(textToPrint)) / spaceWidth));
-
-        if(leftJustified){
-            textToPrint = textToPrint + spaceString;
-        }else {
-            textToPrint = spaceString + textToPrint;
-        }
-        return textToPrint;
-    }
-
-    private static String buildSpaces(int repeat){
-        if(repeat < 0) return "";
-        return String.join("", Collections.nCopies(repeat, " "));
-    }
-
-    private static String adjustLength(String input, float length){
-        return adjustLength(input,length,false);
+        telemetry.Output("Odo Pos (R,B,L):",String.valueOf(rightOdo),String.valueOf(backOdo),String.valueOf(leftOdo));
+        telemetry.Output("Robot Pos (X,Y,θ°):",String.format( "%.3f",this.robotPose.xPos),String.format( "%.3f",this.robotPose.yPos),String.format( "%.3f",Math.toDegrees(this.robotPose.angle)));
     }
 }

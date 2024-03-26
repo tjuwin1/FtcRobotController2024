@@ -34,7 +34,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.helpers.CurvePoint;
-import org.firstinspires.ftc.teamcode.helpers.DataLogger;
+import org.firstinspires.ftc.teamcode.helpers.DataFileLogger;
+import org.firstinspires.ftc.teamcode.helpers.LogOutput;
 import org.firstinspires.ftc.teamcode.helpers.PurePursuitDriver;
 import org.firstinspires.ftc.teamcode.helpers.Hardware;
 
@@ -43,16 +44,16 @@ import java.util.ArrayList;
 @TeleOp(name="PurePursuit Drive", group="Linear OpMode")
 public class PurePursuitDrive extends LinearOpMode {
 
-    private DataLogger logger;
+    private DataFileLogger logger;
     private Hardware robot;
     private PurePursuitDriver driver;
+    private LogOutput logOutput;
 
     private void initializeHardware(){
-        robot = new Hardware(hardwareMap,telemetry);
-
-        logger = new DataLogger("PurePursuitDrive",false);
-
-        driver = new PurePursuitDriver(this,telemetry,logger,robot);
+        logOutput = new LogOutput(telemetry);
+        robot = new Hardware(hardwareMap,logOutput);
+        logger = new DataFileLogger("PurePursuitDrive",false);
+        driver = new PurePursuitDriver(this,logger,robot,logOutput);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -66,16 +67,19 @@ public class PurePursuitDrive extends LinearOpMode {
     @Override
     public void runOpMode() {
         initializeHardware();
+        telemetry.update();
 
         while(opModeInInit()){
             beIdle();
+            telemetry.update();
         }
 
         if(opModeIsActive()){
             ArrayList<CurvePoint> newPath = new ArrayList<CurvePoint>();
             newPath.add(new CurvePoint(40,0,Math.toRadians(90)));
-            //newPath.add(new CurvePoint(30,40,Math.toRadians(180)));
+            newPath.add(new CurvePoint(30,40,Math.toRadians(180)));
             this.driver.followPath(newPath);
+            telemetry.update();
         }
 
         this.driver.stopReleaseAll();

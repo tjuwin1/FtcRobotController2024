@@ -16,6 +16,8 @@ public class PurePursuitDriver {
 
     public static final double TURN_AT_DISTANCE = 10;
 
+    public static final double STUCK_CHECK_TIME = 20;
+
     //Values for Proportional in PID tuning
     private static final double kPxy=0.12, kP0=1;
     private static final double kDxy=0.012,kD0=0.045;
@@ -26,22 +28,17 @@ public class PurePursuitDriver {
     private final double MIN_CHANGE = 0.05;
 
     private LinearOpMode opMode;
-    private Telemetry telemetry;
-    private DataLogger logger;
+    private DataFileLogger logger;
     private ElapsedTime runtime = new ElapsedTime();
+    private LogOutput logOutput;
 
     private ArrayList<CurvePoint> prevDeltas = new ArrayList<CurvePoint>();
 
-    public PurePursuitDriver(DataLogger logger, Hardware robot){
-        this.logger = logger;
-        this.robot = robot;
-    }
-
-    public PurePursuitDriver(LinearOpMode opMode,Telemetry telemetry, DataLogger logger, Hardware robot){
-        this.telemetry = telemetry;
+    public PurePursuitDriver(LinearOpMode opMode,DataFileLogger logger, Hardware robot, LogOutput logOutput){
         this.logger = logger;
         this.opMode = opMode;
         this.robot = robot;
+        this.logOutput = logOutput;
     }
 
     private boolean mustContinue(){
@@ -145,7 +142,6 @@ public class PurePursuitDriver {
                     deltaError.xPos, deltaError.yPos, Math.toDegrees(deltaError.angle),
                     xPIDPower, yPIDPower, aPIDPower, lfPower, lbPower, rfPower, rbPower});
 
-            telemetry.update();
             if (Math.abs(relativeTurnAngle) <= MIN_ANGLE && distanceToTarget <= MIN_DISTANCE) {
                 logger.addField("\n-Reached--------------------------\n");
                 return;
@@ -155,19 +151,21 @@ public class PurePursuitDriver {
             }
             logger.addField("\n");
             firstRun = false;
+
+            this.logOutput.update();
         }
     }
 
     private void addDelta(CurvePoint deltaPoint){
         prevDeltas.add(deltaPoint);
-//Capture a maximum of 10 deltas
-        while (prevDeltas.size() > 10){
+//Capture a maximum of STUCK_CHECK_TIME deltas
+        while (prevDeltas.size() > STUCK_CHECK_TIME){
             prevDeltas.remove(0);
         }
     }
 
     private boolean amImoving(){
-        if(prevDeltas.size() == 10) {
+        if(prevDeltas.size() == STUCK_CHECK_TIME) {
             CurvePoint sumDelta = new CurvePoint(0, 0, 0);
             for (int cnt = 0; cnt < prevDeltas.size(); cnt++) {
                 sumDelta = CurvePoint.add(sumDelta, prevDeltas.get(cnt));

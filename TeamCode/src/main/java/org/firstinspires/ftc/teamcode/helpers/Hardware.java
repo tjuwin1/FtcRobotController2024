@@ -22,7 +22,7 @@ public class Hardware {
     protected BNO055IMU imu;
 
     private HardwareMap hardwareMap;
-    private Telemetry telemetry;
+    protected LogOutput logOutput;
 
     private DcMotor initializeMotor(String motorName, DcMotorSimple.Direction direction){
         DcMotor motor = hardwareMap.get(DcMotor.class, motorName);
@@ -33,15 +33,15 @@ public class Hardware {
         return motor;
     }
 
-    public Hardware(HardwareMap hardwareMap, Telemetry telemetry){
+    public Hardware(HardwareMap hardwareMap, LogOutput logOutput){
         this.hardwareMap = hardwareMap;
-        this.telemetry = telemetry;
+        this.logOutput = logOutput;
 
         leftPod = leftFrontDrive  = initializeMotor("frontLeft",DcMotor.Direction.REVERSE);
         backPod = leftBackDrive  = initializeMotor("backLeft",DcMotor.Direction.REVERSE);
         rightPod = rightFrontDrive = initializeMotor("frontRight",DcMotor.Direction.FORWARD);
         rightBackDrive = initializeMotor( "backRight",DcMotor.Direction.FORWARD);
-        localizer = new Odometry(this,telemetry);
+        localizer = new Odometry(this,logOutput);
 
         this.reInitIMU();
 

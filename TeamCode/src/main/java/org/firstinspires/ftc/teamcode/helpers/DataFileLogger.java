@@ -9,11 +9,11 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class DataLogger {
+public class DataFileLogger {
     private File logFile;
     private String logText ="";
 
-    public DataLogger(String fileName, Boolean newFile) {
+    public DataFileLogger(String fileName, Boolean newFile) {
         Date now = Calendar.getInstance().getTime();
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
         fileName = ( newFile == true ? ( formatter.format(now) + "-" ) : "" ) +
