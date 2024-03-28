@@ -35,12 +35,21 @@ public class Visiativity {
         }
     }
 
-    public void switchCamera() {
-        if (visionPortal.getActiveCamera().equals(this.cameraNames[0])) {
-            visionPortal.setActiveCamera(this.cameraNames[1]);
-        } else {
-            visionPortal.setActiveCamera(this.cameraNames[0]);
+    public void setStreaming(boolean startstop){
+        if(startstop == false){
+            visionPortal.stopStreaming();
+        }else{
+            visionPortal.resumeStreaming();
         }
+    }
+
+    public void switchCamera() {
+        if (this.cameraNames.length > 1)
+            if (visionPortal.getActiveCamera().equals(this.cameraNames[0])) {
+                visionPortal.setActiveCamera(this.cameraNames[1]);
+            } else {
+                visionPortal.setActiveCamera(this.cameraNames[0]);
+            }
     }
 
     public List<AprilTagDetection> getAprilTagDetections(){

@@ -50,6 +50,44 @@ public class MathFunctions {
         return angle;
     }
 
+    public static double maxNumber(double... nums){
+        double maxNum=0;
+        for(int i=0;i<nums.length;i++){
+            if(maxNum<nums[i]) maxNum = nums[i];
+        }
+        return maxNum;
+    }
+
+    public static ArrayList<Point> lineCircleIntersectionK(Point center, double radius, Point pointA, Point pointB) {
+        ArrayList<Point> allPoints = new ArrayList();
+        double baX = pointB.x - pointA.x;
+        double baY = pointB.y - pointA.y;
+        double caX = center.x - pointA.x;
+        double caY = center.y - pointA.y;
+        double a = baX * baX + baY * baY;
+        double bBy2 = baX * caX + baY * caY;
+        double c = caX * caX + caY * caY - radius * radius;
+        double pBy2 = bBy2 / a;
+        double q = c / a;
+        double disc = pBy2 * pBy2 - q;
+        if (disc < 0) {
+            allPoints.add(pointA);
+            return allPoints;
+        }
+
+        double tmpSqrt = Math.sqrt(disc);
+        double abScalingFactor1 = -pBy2 + tmpSqrt;
+        double abScalingFactor2 = -pBy2 - tmpSqrt;
+        Point p1 = new Point(pointA.x - baX * abScalingFactor1, pointA.y - baY * abScalingFactor1);
+        if (disc == 0) {
+            allPoints.add(p1);
+            return allPoints;
+        }
+        Point p2 = new Point(pointA.x - baX * abScalingFactor2, pointA.y - baY * abScalingFactor2);
+        allPoints.add(Math.hypot(pointB.x - p1.x, pointB.y - p1.y) > Math.hypot(pointB.x - p2.x, pointB.y - p2.y) ? p2 : p1);
+        return allPoints;
+    }
+
     public static ArrayList<Point> lineCircleIntersection(Point circleCenter, double radius, Point linePoint1, Point linePoint2) {
         if (Math.abs(linePoint1.y - linePoint2.y) < 0.003) {
             linePoint1.y = linePoint2.y + 0.003;

@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 
 import java.util.List;
 
@@ -23,6 +24,8 @@ public class Hardware {
 
     private HardwareMap hardwareMap;
     protected LogOutput logOutput;
+
+    public WebcamName frontCamera, backCamera;
 
     private DcMotor initializeMotor(String motorName, DcMotorSimple.Direction direction){
         DcMotor motor = hardwareMap.get(DcMotor.class, motorName);
@@ -42,6 +45,9 @@ public class Hardware {
         rightPod = rightFrontDrive = initializeMotor("frontRight",DcMotor.Direction.FORWARD);
         rightBackDrive = initializeMotor( "backRight",DcMotor.Direction.FORWARD);
         localizer = new Odometry(this,logOutput);
+
+        frontCamera = hardwareMap.get(WebcamName.class, "frontCamera");
+        //backCamera = hardwareMap.get(WebcamName.class, "backCamera");
 
         this.reInitIMU();
 

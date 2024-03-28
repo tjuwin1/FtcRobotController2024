@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.helpers.LogOutput;
 
 import java.util.ArrayList;
 
-@TeleOp(name="Field Centric Drive", group="Linear OpMode")
+@TeleOp(name="FieldCentric Drive", group="Linear OpMode")
 public class FieldCentricDrive extends LinearOpMode {
     private Hardware robot;
     private FieldCentricDriver driver;

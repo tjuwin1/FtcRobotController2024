@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.helpers;
 
+import android.util.Log;
+
 import org.checkerframework.dataflow.qual.Pure;
 import org.opencv.core.Point;
 
@@ -7,13 +9,17 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class PathFinder {
+    private static final double TURN_RADIUS = 5;
+    private static final String TAG = "PathFinder";
 
     public static double closestDistance(ArrayList<CurvePoint> allPoints, CurvePoint robotLocation){
+        CurvePoint end = allPoints.get(allPoints.size() - 1);
         double closestDist = 999;
+        double distanceToEnd = Math.hypot(robotLocation.yPos - end.yPos, robotLocation.xPos - end.xPos); //Distance to final endpoint
         for(int i=0;i< allPoints.size() - 1;i++) {
             double slope = 0, intercept = 0;
             CurvePoint start = allPoints.get(i);
-            CurvePoint end = allPoints.get(i + 1);
+            end = allPoints.get(i + 1);
 
             //y = mx + b
             //if X is equal, then y = c
@@ -30,14 +36,13 @@ public class PathFinder {
             //         √(a²+b²)
 
             double distance = Math.abs(slope * robotLocation.xPos - robotLocation.yPos + intercept) / Math.hypot(slope, 1);
-            if (closestDist > distance) { //Keep a minimum radius of n-inches for smooth turning
+            if (closestDist > distance && distance > TURN_RADIUS) {
                 closestDist = distance;
-                if(closestDist < PurePursuitDriver.TURN_AT_DISTANCE){
-                    closestDist = PurePursuitDriver.TURN_AT_DISTANCE;
-                }
             }
+            if (closestDist < TURN_RADIUS) closestDist = TURN_RADIUS;   //Keep a minimum radius of n-inches for smooth turning
         }
-        return closestDist;
+        if(closestDist > distanceToEnd) closestDist = distanceToEnd; //If turn radius is more than distance to endpoint, reduce turn radius
+        return Math.abs(closestDist);
     }
 
     public static CurvePoint getFollowPoint(ArrayList<CurvePoint> pathPoints, CurvePoint robotLocation) {
@@ -45,13 +50,20 @@ public class PathFinder {
         CurvePoint endPoint = pathPoints.get(pathPoints.size() - 1);
         double distanceToEnd = Math.hypot(robotLocation.yPos - endPoint.yPos, robotLocation.xPos - endPoint.xPos);
         double closestDistance = distanceToEnd;
+
         CurvePoint followMe = pathPoints.get(0);
 
         for(int i = 0; i < pathPoints.size() - 1; ++i) {
             CurvePoint startLine = pathPoints.get(i);
             CurvePoint endLine = pathPoints.get(i + 1);
-            ArrayList<Point> intersections = MathFunctions.lineCircleIntersection(robotLocation.toPoint(), followRadius, startLine.toPoint(), endLine.toPoint());
+            ArrayList<Point> intersections = MathFunctions.lineCircleIntersectionK(robotLocation.toPoint(), followRadius, startLine.toPoint(), endLine.toPoint());
             Iterator var11 = intersections.iterator();
+
+            if(intersections.size() > 0){
+                followMe.xPos = endLine.xPos;
+                followMe.yPos = endLine.yPos;
+                followMe.angle = endLine.angle;
+            }
 
             while(var11.hasNext()) {
                 Point thisIntersection = (Point)var11.next();

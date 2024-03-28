@@ -38,6 +38,7 @@ import org.firstinspires.ftc.teamcode.helpers.DataFileLogger;
 import org.firstinspires.ftc.teamcode.helpers.LogOutput;
 import org.firstinspires.ftc.teamcode.helpers.PurePursuitDriver;
 import org.firstinspires.ftc.teamcode.helpers.Hardware;
+import org.firstinspires.ftc.teamcode.helpers.Visiativity;
 
 import java.util.ArrayList;
 
@@ -48,12 +49,14 @@ public class PurePursuitDrive extends LinearOpMode {
     private Hardware robot;
     private PurePursuitDriver driver;
     private LogOutput logOutput;
+    private Visiativity visiativity;
 
     private void initializeHardware(){
         logOutput = new LogOutput(telemetry);
         robot = new Hardware(hardwareMap,logOutput);
         logger = new DataFileLogger("PurePursuitDrive",false);
         driver = new PurePursuitDriver(this,logger,robot,logOutput);
+        visiativity = new Visiativity(robot.frontCamera);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -69,17 +72,21 @@ public class PurePursuitDrive extends LinearOpMode {
         initializeHardware();
         telemetry.update();
 
+        visiativity.setStreaming(true);
         while(opModeInInit()){
             beIdle();
             telemetry.update();
         }
+        visiativity.setStreaming(false);
 
+        ArrayList<CurvePoint> newPath = new ArrayList<CurvePoint>();
         if(opModeIsActive()){
-            ArrayList<CurvePoint> newPath = new ArrayList<CurvePoint>();
-            newPath.add(new CurvePoint(40,0,Math.toRadians(90)));
-            newPath.add(new CurvePoint(30,40,Math.toRadians(180)));
+            newPath.add(new CurvePoint(8,0,Math.toRadians(90)));
+            newPath.add(new CurvePoint(8,8,Math.toRadians(180)));
             this.driver.followPath(newPath);
-            telemetry.update();
+        }
+        while(opModeIsActive()){
+            beIdle();
         }
 
         this.driver.stopReleaseAll();

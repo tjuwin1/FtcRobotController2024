@@ -55,7 +55,7 @@ public class DataFileLogger {
         addField(String.format("%.5f",d));
     }
 
-    public void addField(double[] array) {
+    public void addField(double... array) {
         for(int i=0; i<array.length;i++) {
             addField(String.format("%.5f", array[i]));
             if (i != (array.length - 1)){
@@ -64,7 +64,7 @@ public class DataFileLogger {
         }
     }
 
-    public void addField(String[] array) {
+    public void addField(String... array) {
         for(int i=0; i<array.length;i++) {
             addField(array[i]);
             if (i != (array.length - 1)){

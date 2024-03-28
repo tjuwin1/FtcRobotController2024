@@ -14,18 +14,18 @@ import java.util.Optional;
 public class PurePursuitDriver {
     private Hardware robot;
 
-    public static final double TURN_AT_DISTANCE = 10;
+    private static final double TURN_AT_DISTANCE = 15;
 
-    public static final double STUCK_CHECK_TIME = 20;
+    private static final double STUCK_CHECK_TIME = 20;
+    private final double MIN_ANGLE = Math.toRadians(0.5);
+    private final double MIN_DISTANCE = 0.5;
+    private final double MIN_CHANGE = 0.05;
+    private final double MIN_POWER = 0.1; //Minimum required power for the robot to move
 
     //Values for Proportional in PID tuning
     private static final double kPxy=0.12, kP0=1;
     private static final double kDxy=0.012,kD0=0.045;
     private static final double kIxy=0.0012, kI0=0.0045;
-
-    private final double MIN_ANGLE = Math.toRadians(1);
-    private final double MIN_DISTANCE = 0.5;
-    private final double MIN_CHANGE = 0.05;
 
     private LinearOpMode opMode;
     private DataFileLogger logger;
@@ -39,6 +39,13 @@ public class PurePursuitDriver {
         this.opMode = opMode;
         this.robot = robot;
         this.logOutput = logOutput;
+
+        logger.addField(
+                "cycleTime","xPos", "yPos", "angle","tgtX","tgtY","tgta",
+                "distanceToTarget", "absoluteAngleToTarget",
+                "relativeAngleToPoint", "relativeTurnAngle", "xyTotal", "xPower", "yPower",
+                "dxPos", "dyPos", "dangle", "xPIDPower", "yPIDPower",
+                "aPIDPower", "maxPower","lfPower", "lbPower", "rfPower", "rbPower", "\n");
     }
 
     private boolean mustContinue(){
@@ -69,14 +76,8 @@ public class PurePursuitDriver {
         prevDeltas.clear();
         runtime.reset();
 
-        logger.addField(new String[]{
-                "cycleTime","xPos", "yPos", "angle","tgtX","tgtY","tgta",
-                "distanceToTarget", "absoluteAngleToTarget",
-                "relativeAngleToPoint", "relativeTurnAngle", "xyTotal", "xPower", "yPower",
-                "dxPos", "dyPos", "dangle", "xPIDPower", "yPIDPower",
-                "aPIDPower", "lfPower", "lbPower", "rfPower", "rbPower", "\n"});
-
         while (this.mustContinue()) {
+            logger.addField("\n");
             robot.localizer.updateReadings();
 
             double cycleTime = runtime.seconds();
@@ -101,10 +102,27 @@ public class PurePursuitDriver {
                 relativeTurnAngle = Range.clip(absoluteAngleToTarget, -Math.PI / 2, Math.PI / 2);
             }
 
+            if (firstRun == true)
+                if (!(Math.abs(relativeTurnAngle) >= Math.toRadians(3) || distanceToTarget >= 2))
+                    return; //Nothing to move
+
             if (firstRun == false) {
                 deltaError = CurvePoint.subtract(prevPoint, new CurvePoint(xPower, yPower, relativeTurnAngle));
                 integralPoint = CurvePoint.add(integralPoint, CurvePoint.multiply(deltaError, cycleTime));
                 addDelta(deltaError);
+            }
+
+            if (Math.abs(relativeTurnAngle) <= MIN_ANGLE && distanceToTarget <= MIN_DISTANCE) {
+                robot.leftFrontDrive.setPower(0);
+                robot.rightFrontDrive.setPower(0);
+                robot.leftBackDrive.setPower(0);
+                robot.rightBackDrive.setPower(0);
+                logger.addField(String.format("\n----------------Reached--Angle [%.5f <= %.5f] and Distance [%.5f <= %.5f]------------------------\n",
+                        Math.toDegrees(Math.abs(relativeTurnAngle)),Math.toDegrees(MIN_ANGLE),distanceToTarget,MIN_DISTANCE));
+                return;
+            /*} else if (!amImoving()) {
+                logger.addField("\n-Stuck--------------------------\n");
+                return;*/
             }
 
             //PID Controller
@@ -129,29 +147,28 @@ public class PurePursuitDriver {
             double rfPower = Range.clip(xPIDPower + yPIDPower + aPIDPower, -rfPowerMax, rfPowerMax); //(y - x - rx)
             double rbPower = Range.clip(xPIDPower - yPIDPower + aPIDPower, -rbPowerMax, rbPowerMax); //(y + x - rx)
 
+            double maxPower = MathFunctions.maxNumber(Math.abs(lfPower),Math.abs(lbPower),Math.abs(rfPower),Math.abs(rbPower));
+            if(maxPower < MIN_POWER){ //Minimum required power for the robot to move
+                lfPower *= MIN_POWER / maxPower;
+                lbPower *= MIN_POWER / maxPower;
+                rfPower *= MIN_POWER / maxPower;
+                rbPower *= MIN_POWER / maxPower;
+            }
+
             robot.leftFrontDrive.setPower(lfPower);
             robot.leftBackDrive.setPower(lbPower);
             robot.rightFrontDrive.setPower(rfPower);
             robot.rightBackDrive.setPower(rbPower);
 
-            logger.addField(new double[]{cycleTime,
+            logger.addField(cycleTime,
                     robot.localizer.robotPose.xPos, robot.localizer.robotPose.yPos, Math.toDegrees(robot.localizer.robotPose.angle),
-                    point.xPos,point.yPos,point.angle,
+                    point.xPos,point.yPos,Math.toDegrees(point.angle),
                     distanceToTarget, Math.toDegrees(absoluteAngleToTarget),
                     Math.toDegrees(relativeAngleToPoint), Math.toDegrees(relativeTurnAngle), xyTotal, xPower, yPower,
                     deltaError.xPos, deltaError.yPos, Math.toDegrees(deltaError.angle),
-                    xPIDPower, yPIDPower, aPIDPower, lfPower, lbPower, rfPower, rbPower});
+                    xPIDPower, yPIDPower, aPIDPower, maxPower, lfPower, lbPower, rfPower, rbPower);
 
-            if (Math.abs(relativeTurnAngle) <= MIN_ANGLE && distanceToTarget <= MIN_DISTANCE) {
-                logger.addField("\n-Reached--------------------------\n");
-                return;
-            } else if (!amImoving()) {
-                logger.addField("\n-Stuck--------------------------\n");
-                return;
-            }
-            logger.addField("\n");
             firstRun = false;
-
             this.logOutput.update();
         }
     }
