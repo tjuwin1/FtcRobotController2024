@@ -45,7 +45,7 @@ public class Odometry{
     }
 
     public void updateReadings(){
-        double r0, r1;
+        double turnRadius, strafeRadius;
         int rightOdo = - rightFrontDrive.getCurrentPosition() - this.rightOdoOff;
         int backOdo = - leftBackDrive.getCurrentPosition() - this.backOdoOff;
         int leftOdo = - leftFrontDrive.getCurrentPosition() - this.leftOdoOff;
@@ -60,13 +60,13 @@ public class Odometry{
             double deltaStrafe = deltaBack * inPerTick - backOffset * delta0;
 
             if (delta0 == 0) {
-                delta0 = 1E-7;
+                delta0 = Double.MIN_VALUE;
             }
-            r0 = deltaFwd / delta0;
-            r1 = deltaStrafe / delta0;
+            turnRadius = deltaFwd / delta0;
+            strafeRadius = deltaStrafe / delta0;
 
-            double relX = r0 * Math.sin(delta0) - r1 * (1 - Math.cos(delta0));
-            double relY = r1 * Math.sin(delta0) + r0 * (1 - Math.cos(delta0));
+            double relX = turnRadius * Math.sin(delta0) - strafeRadius * (1 - Math.cos(delta0));
+            double relY = strafeRadius * Math.sin(delta0) + turnRadius * (1 - Math.cos(delta0));
 
             this.robotPose.angle -= delta0;
             this.robotPose.angle = MathFunctions.AngleWrap(this.robotPose.angle);
