@@ -4,6 +4,8 @@ import android.graphics.Paint;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.lang.reflect.Array;
@@ -12,10 +14,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class Odometry{
+    private static String TAG = "3WheelLocalizer";
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
+    private DataFileLogger logger;
+    private ElapsedTime runtime = new ElapsedTime();
 
     private static final double trackWidth = 9.605171684632;
     private static final double backOffset = 5.444241253624781;
@@ -29,6 +34,7 @@ public class Odometry{
 
     public Odometry(Hardware hardwareMap,LogOutput telemetry){
         this.telemetry = telemetry;
+        logger = new DataFileLogger(TAG,false);
         leftFrontDrive  = hardwareMap.leftFrontDrive;
         leftBackDrive  = hardwareMap.leftBackDrive;
         rightFrontDrive = hardwareMap.rightFrontDrive;
@@ -36,6 +42,12 @@ public class Odometry{
         this.prevRightOdo = this.rightOdoOff = - rightFrontDrive.getCurrentPosition();
         this.prefBackOdo = this.backOdoOff = - leftBackDrive.getCurrentPosition();
         this.prevLeftOdo = this.leftOdoOff = - leftFrontDrive.getCurrentPosition();
+        logger.addField("runtime","right","back","left","Δright","Δback","Δleft","Δfwd","Δ0","Δstrafe","turnRadius","strafeRadius",
+                "relX","relY","rob0","robX","robY");
+    }
+
+    public void close(){
+        logger.closeLog();
     }
 
     public void setRobotPos(CurvePoint Pose){
@@ -76,6 +88,10 @@ public class Odometry{
             this.prevRightOdo = rightOdo;
             this.prefBackOdo = backOdo;
             this.prevLeftOdo = leftOdo;
+            logger.addField(runtime.seconds(),
+                    rightOdo,backOdo,leftOdo,deltaRight,deltaBack,deltaLeft,
+                    deltaFwd,delta0,deltaStrafe,turnRadius,strafeRadius,
+                    relX,relY,this.robotPose.angle,this.robotPose.xPos,this.robotPose.yPos);
         }
 
         this.printPosition(rightOdo,backOdo,leftOdo);

@@ -14,9 +14,10 @@ import java.util.Optional;
 public class PurePursuitDriver {
     private Hardware robot;
 
+    private static String TAG = "PathFollower";
     private static final double TURN_AT_DISTANCE = 15;
 
-    private static final double STUCK_CHECK_TIME = 20;
+    private static final double STUCK_CHECK_TIME = 10;
     private final double MIN_ANGLE = Math.toRadians(0.5);
     private final double MIN_DISTANCE = 0.5;
     private final double MIN_CHANGE = 0.05;
@@ -32,10 +33,19 @@ public class PurePursuitDriver {
     private ElapsedTime runtime = new ElapsedTime();
     private LogOutput logOutput;
 
-    private ArrayList<CurvePoint> prevDeltas = new ArrayList<CurvePoint>();
+    private class robotPath{
+        public double timestamp;
+        public CurvePoint pose;
+        public robotPath(CurvePoint pose){
+            timestamp = runtime.seconds();
+            this.pose = pose;
+        }
+    }
 
-    public PurePursuitDriver(LinearOpMode opMode,DataFileLogger logger, Hardware robot, LogOutput logOutput){
-        this.logger = logger;
+    private ArrayList<robotPath> prevDeltas = new ArrayList<robotPath>();
+
+    public PurePursuitDriver(LinearOpMode opMode,Hardware robot, LogOutput logOutput){
+        this.logger = new DataFileLogger(TAG,false);
         this.opMode = opMode;
         this.robot = robot;
         this.logOutput = logOutput;
@@ -53,14 +63,14 @@ public class PurePursuitDriver {
     }
 
     public void stopReleaseAll(){
-        robot.leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        robot.rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        robot.leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        robot.rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         robot.leftFrontDrive.setPower(0);
         robot.rightFrontDrive.setPower(0);
         robot.leftBackDrive.setPower(0);
         robot.rightBackDrive.setPower(0);
+    }
+
+    public void close(){
+        logger.closeLog();
     }
 
     public void followPath(ArrayList<CurvePoint> allPoints){
@@ -68,7 +78,7 @@ public class PurePursuitDriver {
             return;
         }
 
-        Boolean firstRun = true;
+        Boolean firstRun = false;
         CurvePoint prevPoint = new CurvePoint(0, 0, 0);
         CurvePoint deltaError = new CurvePoint(0, 0, 0);
         CurvePoint integralPoint = new CurvePoint(0, 0, 0);
@@ -77,7 +87,6 @@ public class PurePursuitDriver {
         runtime.reset();
 
         while (this.mustContinue()) {
-            logger.addField("\n");
             robot.localizer.updateReadings();
 
             double cycleTime = runtime.seconds();
@@ -102,27 +111,22 @@ public class PurePursuitDriver {
                 relativeTurnAngle = Range.clip(absoluteAngleToTarget, -Math.PI / 2, Math.PI / 2);
             }
 
-            if (firstRun == true)
-                if (!(Math.abs(relativeTurnAngle) >= Math.toRadians(3) || distanceToTarget >= 2))
-                    return; //Nothing to move
-
-            if (firstRun == false) {
+            if (!firstRun) {
                 deltaError = CurvePoint.subtract(prevPoint, new CurvePoint(xPower, yPower, relativeTurnAngle));
                 integralPoint = CurvePoint.add(integralPoint, CurvePoint.multiply(deltaError, cycleTime));
                 addDelta(deltaError);
             }
 
             if (Math.abs(relativeTurnAngle) <= MIN_ANGLE && distanceToTarget <= MIN_DISTANCE) {
-                robot.leftFrontDrive.setPower(0);
-                robot.rightFrontDrive.setPower(0);
-                robot.leftBackDrive.setPower(0);
-                robot.rightBackDrive.setPower(0);
+                stopReleaseAll();
                 logger.addField(String.format("\n----------------Reached--Angle [%.5f <= %.5f] and Distance [%.5f <= %.5f]------------------------\n",
                         Math.toDegrees(Math.abs(relativeTurnAngle)),Math.toDegrees(MIN_ANGLE),distanceToTarget,MIN_DISTANCE));
                 return;
-            /*} else if (!amImoving()) {
-                logger.addField("\n-Stuck--------------------------\n");
-                return;*/
+            } else if (!amImoving()) {
+                stopReleaseAll();
+                logger.addField(String.format("\n----------------Stuck--Angle [%.5f <= %.5f] and Distance [%.5f <= %.5f]------------------------\n",
+                        Math.toDegrees(Math.abs(relativeTurnAngle)),Math.toDegrees(MIN_ANGLE),distanceToTarget,MIN_DISTANCE));
+                return;
             }
 
             //PID Controller
@@ -173,21 +177,29 @@ public class PurePursuitDriver {
         }
     }
 
-    private void addDelta(CurvePoint deltaPoint){
-        prevDeltas.add(deltaPoint);
-//Capture a maximum of STUCK_CHECK_TIME deltas
-        while (prevDeltas.size() > STUCK_CHECK_TIME){
-            prevDeltas.remove(0);
-        }
+    private void addDelta(CurvePoint deltaError){
+        prevDeltas.add(0,new robotPath(deltaError));
     }
 
     private boolean amImoving(){
-        if(prevDeltas.size() == STUCK_CHECK_TIME) {
-            CurvePoint sumDelta = new CurvePoint(0, 0, 0);
-            for (int cnt = 0; cnt < prevDeltas.size(); cnt++) {
-                sumDelta = CurvePoint.add(sumDelta, prevDeltas.get(cnt));
+        boolean enoughDataExists = false;
+        CurvePoint sumErrs = new CurvePoint(0, 0, 0);
+
+        for (int cnt = 0; cnt < prevDeltas.size(); cnt++) {
+            robotPath deltaPose =  prevDeltas.get(cnt);
+            if (deltaPose.timestamp < STUCK_CHECK_TIME) {
+                sumErrs = CurvePoint.add(sumErrs, deltaPose.pose);
+            }else{
+                enoughDataExists = true; //More than stuck check time is available
+                prevDeltas.subList(cnt+1, prevDeltas.size()).clear();
+                break;
             }
-            if (Math.abs(sumDelta.xPos) < MIN_CHANGE && Math.abs(sumDelta.yPos) < MIN_CHANGE && Math.abs(sumDelta.angle) < MIN_ANGLE) {
+        }
+
+        if(enoughDataExists) {
+            if (Math.abs(sumErrs.xPos) < MIN_CHANGE &&
+                Math.abs(sumErrs.yPos) < MIN_CHANGE &&
+                Math.abs(sumErrs.angle) < MIN_ANGLE) {
                 return false; //Not moving!!!
             }
         }

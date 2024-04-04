@@ -29,6 +29,8 @@
 
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import android.util.Log;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -36,6 +38,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import org.firstinspires.ftc.teamcode.helpers.CurvePoint;
 import org.firstinspires.ftc.teamcode.helpers.DataFileLogger;
 import org.firstinspires.ftc.teamcode.helpers.LogOutput;
+import org.firstinspires.ftc.teamcode.helpers.MathFunctions;
 import org.firstinspires.ftc.teamcode.helpers.PurePursuitDriver;
 import org.firstinspires.ftc.teamcode.helpers.Hardware;
 import org.firstinspires.ftc.teamcode.helpers.Visiativity;
@@ -45,7 +48,10 @@ import java.util.ArrayList;
 @TeleOp(name="PurePursuit Drive", group="Linear OpMode")
 public class PurePursuitDrive extends LinearOpMode {
 
-    private DataFileLogger logger;
+    private static double LOCK_DISTANCE = 2;
+    private static double LOCK_ANGLE = Math.toRadians(3);
+
+    private static String TAG = "PurePursuitOpMode";
     private Hardware robot;
     private PurePursuitDriver driver;
     private LogOutput logOutput;
@@ -54,8 +60,7 @@ public class PurePursuitDrive extends LinearOpMode {
     private void initializeHardware(){
         logOutput = new LogOutput(telemetry);
         robot = new Hardware(hardwareMap,logOutput);
-        logger = new DataFileLogger("PurePursuitDrive",false);
-        driver = new PurePursuitDriver(this,logger,robot,logOutput);
+        driver = new PurePursuitDriver(this,robot,logOutput);
         visiativity = new Visiativity(robot.frontCamera);
 
         telemetry.addData("Status", "Initialized");
@@ -79,19 +84,50 @@ public class PurePursuitDrive extends LinearOpMode {
         }
         visiativity.setStreaming(false);
 
+        CurvePoint finalPose = new CurvePoint(8,8,Math.toRadians(180));
+
         ArrayList<CurvePoint> newPath = new ArrayList<CurvePoint>();
         if(opModeIsActive()){
             newPath.add(new CurvePoint(8,0,Math.toRadians(90)));
-            newPath.add(new CurvePoint(8,8,Math.toRadians(180)));
+            newPath.add(finalPose);
             this.driver.followPath(newPath);
         }
+
         while(opModeIsActive()){
+            positionLock(finalPose);
             beIdle();
         }
 
         this.driver.stopReleaseAll();
 
-        logger.closeLog();
+        this.robot.localizer.close();
+        this.driver.close();
+    }
+
+    private void positionLock(CurvePoint finalPose){
+        ArrayList<CurvePoint> newPath = new ArrayList<CurvePoint>();
+        newPath.add(finalPose);
+
+        if(awayFromTarget(finalPose)){
+            this.driver.followPath(newPath);
+        }else{
+            robot.localizer.updateReadings();
+        }
+    }
+
+    private boolean awayFromTarget(CurvePoint point){
+        double distance = Math.hypot(point.yPos - robot.localizer.robotPose.yPos,
+                point.xPos - robot.localizer.robotPose.xPos);
+        if (distance > LOCK_DISTANCE){ //More than n inch distance
+            Log.v(TAG,String.format("Distance from target: %.5f",distance));
+            return true;
+        }
+        double angleDiff = Math.abs(MathFunctions.AngleWrap(point.angle - robot.localizer.robotPose.angle));
+        if (angleDiff > LOCK_ANGLE){ //More than n degrees difference
+            Log.v(TAG,String.format("Angle from target: %.5f",Math.toDegrees(angleDiff)));
+            return true;
+        }
+        return false;
     }
 
 }
